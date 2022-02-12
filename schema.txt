@@ -1,0 +1,24 @@
+users
+id ID
+name CHAR(200)
+phone_number CHAR(200)
+password CHAR(100)
+email CHAR(200)
+national_number UNIQUE CHAR(15)
+
+accounts
+id ID
+user_id INTEGER
+amount INTEGER
+number UNIQUE CHAR(15)
+password CHAR(50)
+alias CHAR(100)
+created_time TIMESTAMP
+
+transactions
+id ID
+account_id INTEGER
+destination_id INTEGER
+amount INTEGER
+description CHAR(200)
+created_time TIMESTAMP

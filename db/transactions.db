@@ -1,0 +1,4 @@
+id,account_id,destination_id,amount,description,created_time
+1,0,1,1000,Open account,2022-02-12T13:40:49.364798
+2,0,2,20000,Open account,2022-02-12T13:41:00.051586
+3,2,1,1000,Transfer money,2022-02-12T13:42:55.910452
