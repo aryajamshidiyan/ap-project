@@ -1,5 +1,5 @@
 from database import Database
-from models import User, Account
+from models import User, Account, Bill
 from utils import print_msg_box
 
 
@@ -15,7 +15,11 @@ class ActionEnum:
     OPEN_ACCOUNT = 3
     SHOW_ACCOUNT = 4
     MANAGE_ACCOUNT = 5
+    FAVORITE_ACCOUNT = 6
     TRANSFER = 7
+    BILL_PAYMENT = 8
+    LOAN_REQUEST = 9
+    CLOSE_ACCOUNT = 10
     LOGOUT = 11
 
 
@@ -35,7 +39,11 @@ class ActionHandler:
             OpenAccount(),
             ShowAccount(),
             ManageAccount(),
+            FavoriteAccount(),
             Transfer(),
+            BillPayment(),
+            LoanRequest(),
+            CloseAccount(),
             Logout()
         ]
 
@@ -185,6 +193,20 @@ class ManageAccount(Action):
         return Signal.OK
 
 
+class FavoriteAccount(Action):
+    def __init__(self):
+        super().__init__(
+            action=ActionEnum.FAVORITE_ACCOUNT,
+            title='Define favorite account',
+            description='Define favorite account',
+            user_required=True
+        )
+
+    def run(self):
+        print('This feature is not available.')
+        return Signal.OK
+
+
 class Transfer(Action):
     def __init__(self):
         super().__init__(
@@ -219,6 +241,90 @@ class Transfer(Action):
 
         print('Transfer was successful.')
 
+        return Signal.OK
+
+
+class BillPayment(Action):
+    def __init__(self):
+        super().__init__(
+            action=ActionEnum.BILL_PAYMENT,
+            title='Bill payment',
+            description='Bill payment',
+            user_required=True
+        )
+
+    def run(self):
+        bill = Bill(self.user)
+        bill.show_bills()
+        bill.prompt_bill_id()
+        selected_bill = bill.fetch_by_bill_id()
+        if not selected_bill:
+            print('Bill not found')
+            return Signal.RERUN
+        bill.prompt_payment_code()
+        selected_bill = bill.fetch_by_bill_id_and_payment_code()
+        if not selected_bill:
+            print('Bill not found')
+            return Signal.RERUN
+        if selected_bill['status']:
+            print('Bill already payed')
+            return Signal.OK
+        amount = selected_bill['amount']
+        while True:
+            account = Account(self.user)
+            account.show_account_list()
+            selected_account = account.prompt_account_alias('Enter your account alias: ')
+            result = account.validate_amount(selected_account, amount)
+            if not result:
+                print('Balance not enough!')
+                continue
+            break
+        while True:
+            password = account.prompt_password()
+            if password != selected_account['password']:
+                print('Password incorrect.')
+                continue
+            break
+        bill.pay_bill(selected_account)
+
+        print('Bill payed successfully')
+
+        return Signal.OK
+
+
+class LoanRequest(Action):
+    def __init__(self):
+        super().__init__(
+            action=ActionEnum.LOAN_REQUEST,
+            title='Request a loan',
+            description='Request a loan',
+            user_required=True
+        )
+
+    def run(self):
+        print('This feature is not available.')
+        return Signal.OK
+
+
+class CloseAccount(Action):
+    def __init__(self):
+        super().__init__(
+            action=ActionEnum.CLOSE_ACCOUNT,
+            title='Close an account',
+            description='Close an account',
+            user_required=True
+        )
+
+    def run(self):
+        account = Account(self.user)
+        account.show_account_list()
+        selected_account = account.prompt_account_alias('Enter your account alias: ')
+        destination_account = account.prompt_account_number('Enter destination account number: ')
+        if selected_account['id'] == destination_account['id']:
+            print('Can not transfer to self account')
+            return Signal.RERUN
+        account.close_account(selected_account, destination_account)
+        print('Account closed successfully.')
         return Signal.OK
 
 

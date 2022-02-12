@@ -250,6 +250,10 @@ class Account(BaseModel):
             return False
         return True
 
+    def close_account(self, selected_account, destination_account):
+        amount = selected_account['amount']
+        self.transfer(selected_account, destination_account, amount)
+
 
 class Transaction(BaseModel):
     def __init__(self, account):
@@ -274,3 +278,76 @@ class Transaction(BaseModel):
 
         print(transactions_table)
         print(table_footer(transactions_table, 'Sum', {'amount': account['amount']}))
+
+
+class Bill(BaseModel):
+    def __init__(self, user):
+        super().__init__(user.db_connection, 'bills')
+        self.user = user
+        self.bill_id = None
+        self.payment_code = None
+
+    def prompt_bill_id(self):
+        self.bill_id = prompt(
+            'Enter your bill id: ',
+            validate_positive_number,
+            'bill id required.'
+        )
+
+    def prompt_payment_code(self):
+        self.payment_code = prompt(
+            'Enter your payment code: ',
+            validate_positive_number,
+            'payment code required.'
+        )
+
+    def fetch_by_bill_id(self):
+        return self.first([
+            ['user_id', '==', self.user.id],
+            ['bill_id', '==', self.bill_id]
+        ])
+
+    def fetch_by_bill_id_and_payment_code(self):
+        return self.first([
+            ['user_id', '==', self.user.id],
+            ['bill_id', '==', self.bill_id],
+            ['payment_code', '==', self.payment_code],
+        ])
+
+    def show_bills(self):
+        bills = self.all([['user_id', '==', self.user.id]])
+        bills_table = PrettyTable(['description', 'amount', 'bill_id', 'status'])
+        bills_table.add_rows([
+            [bill['description'], bill['amount'], bill['bill_id'], 'Payed' if bill['status'] else '-'] for bill in bills
+        ])
+        print(bills_table)
+
+    @staticmethod
+    def convert_to_values(bill):
+        return ','.join([str(item) for item in [bill['id'], bill['user_id'], bill['amount'], bill['description'],
+                                                bill['bill_id'], bill['payment_code'], bill['status']]])
+
+    def pay_bill(self, selected_account):
+        bill = self.fetch_by_bill_id_and_payment_code()
+        amount = bill['amount']
+
+        selected_account['amount'] = str(int(selected_account['amount']) - int(amount))
+        selected_account_values = Account.convert_to_values(selected_account)
+        self.db_connection.run_query(
+            f"update accounts where id == {selected_account['id']} values ({selected_account_values});"
+        )
+
+        bill['status'] = 1
+        bill_values = self.convert_to_values(bill)
+        self.db_connection.run_query(
+            f"update {self.table_name} where id == {bill['id']} values ({bill_values});"
+        )
+
+        transaction = Transaction(self)
+        transaction.new_transaction({
+            'amount': bill['amount'],
+            'description': 'Bill payment',
+            'account_id': selected_account['id'],
+            'destination_id': 0,
+            'created_time': datetime.now().isoformat()
+        })

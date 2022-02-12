@@ -289,6 +289,8 @@ class Field:
         elif self.type == DataType.INT:
             return int(value)
         elif self.type == DataType.BOOL:
-            return bool(value)
+            if value in ['0', 'False', 'false']:
+                return False
+            return True
         elif self.type == DataType.TIMESTAMP:
             return value.strip('"')

@@ -22,3 +22,12 @@ destination_id INTEGER
 amount INTEGER
 description CHAR(200)
 created_time TIMESTAMP
+
+bills
+id ID
+user_id INTEGER
+amount INTEGER
+description CHAR(200)
+bill_id INTEGER
+payment_code INTEGER
+status BOOLEAN
